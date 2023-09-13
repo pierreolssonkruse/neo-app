@@ -10,7 +10,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await fetchNEOs('2023-09-12', '2023-09-12');
+        const data = await fetchNEOs('2023-09-01', '2023-09-01');
         setNeoData(data);
         setLoading(false);
       } catch (err) {

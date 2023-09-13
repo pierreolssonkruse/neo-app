@@ -1,10 +1,13 @@
 import React, { useRef, useEffect } from "react";
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { TextureLoader } from 'three';
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { TextureLoader } from "three";
 import * as THREE from "three";
 
 const NEOVisualizer = ({ neoData }: { neoData: any }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
 
   useEffect(() => {
     const scene = new THREE.Scene();
@@ -16,39 +19,73 @@ const NEOVisualizer = ({ neoData }: { neoData: any }) => {
       1000
     );
 
+    function onMouseClick(event: MouseEvent) {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(scene.children);
+
+      if (intersects.length > 0) {
+        const firstIntersection = intersects[0];
+        const object = firstIntersection.object;
+
+        if (object.userData.type === "NEO") {
+          alert(
+            `Name: ${object.userData.details.name}\nDiameter: ${object.userData.details.estimated_diameter.meters.estimated_diameter_max} meters`
+          );
+        }
+      }
+    }
+
+    window.addEventListener("click", onMouseClick, false);
+
     const renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
     containerRef.current?.appendChild(renderer.domElement);
     const controls = new OrbitControls(camera, renderer.domElement);
 
     const textureLoader = new TextureLoader();
-    textureLoader.load('/earth_texture.jpg', (texture) => {
-        const earthGeometry = new THREE.SphereGeometry(1, 32, 32);
-        const earthMaterial = new THREE.MeshBasicMaterial({ map: texture });
-        const earth = new THREE.Mesh(earthGeometry, earthMaterial);
-        scene.add(earth);
+    textureLoader.load("/earth_texture.jpg", (texture) => {
+      const earthGeometry = new THREE.SphereGeometry(1, 32, 32);
+      const earthMaterial = new THREE.MeshBasicMaterial({ map: texture });
+      const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+      scene.add(earth);
     });
 
-    const neosForDate = neoData.near_earth_objects["2023-09-12"];
+    const neosForDate = neoData.near_earth_objects["2023-09-01"];
     if (!neosForDate || !Array.isArray(neosForDate)) {
-        return;
+      return;
     }
 
     const EARTH_DIMETER = 12742;
     const NEO_SCALING_FACTOR = 100;
     const MIN_NEO_SIZE = 0.5;
-    const neoTexture = textureLoader.load('/neo_texture.jpg');
+    const neoTexture = textureLoader.load("/neo_texture.jpg");
 
     neosForDate.forEach((neo: any) => {
-      const neoDiameter = neo.estimated_diameter.meters.estimated_diameter_max / 1000;
-      const scaleDiameter = Math.max((neoDiameter / EARTH_DIMETER) * NEO_SCALING_FACTOR, MIN_NEO_SIZE);
+      const neoDiameter =
+        neo.estimated_diameter.meters.estimated_diameter_max / 1000;
+      const scaleDiameter = Math.max(
+        (neoDiameter / EARTH_DIMETER) * NEO_SCALING_FACTOR,
+        MIN_NEO_SIZE
+      );
       const neoGeometry = new THREE.SphereGeometry(scaleDiameter / 2, 32, 32);
       const neoColor = neo.is_potentially_hazardous_asteroid
         ? 0xff0000
         : 0x00ff00;
-      const neoMaterial = new THREE.MeshBasicMaterial({ map: neoTexture });
+      const neoMaterial = new THREE.MeshBasicMaterial({
+        map: neoTexture,
+        color: neoColor,
+      });
       const neoSphere = new THREE.Mesh(neoGeometry, neoMaterial);
-      const distanceFromEarth = neo.close_approach_data[0].miss_distance.kilometers / 1000000;
+      neoSphere.userData = {
+        type: "NEO",
+        details: neo,
+      };
+
+      const distanceFromEarth =
+        neo.close_approach_data[0].miss_distance.kilometers / 1000000;
       const randomTheta = 2 * Math.PI * Math.random();
       const randomPhi = Math.acos(2 * Math.random() - 1);
       const x = distanceFromEarth * Math.sin(randomPhi) * Math.cos(randomTheta);
@@ -68,6 +105,10 @@ const NEOVisualizer = ({ neoData }: { neoData: any }) => {
     };
 
     animate();
+
+    return () => {
+      window.removeEventListener("click", onMouseClick);
+    };
   }, [neoData]);
 
   return (
