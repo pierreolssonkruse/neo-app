@@ -8,7 +8,7 @@ export const fetchNEOs = async (startDate: string, endDate: string): Promise<any
         params: {
           start_date: startDate,
           end_date: endDate,
-          api_key: 'pfTbBLaNtc2K8M5WOXOPEl9mqfGhKJUOhBLVNV5d'
+          api_key: process.env.NEXT_PUBLIC_NASA_API_KEY
         }
       });
       return response.data;
