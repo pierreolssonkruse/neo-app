@@ -19,20 +19,47 @@ const NEOVisualizer = ({ neoData }: { neoData: any }) => {
       1000
     );
 
-    function onMouseClick(event: MouseEvent) {
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    let hoveredNeo: THREE.Mesh | null = null;
 
-      raycaster.setFromCamera(mouse, camera);
+    function onMouseClick(event: MouseEvent) {
+      const { clientX, clientY } = event;
+      const { innerWidth, innerHeight } = window;
+
+      const mouse = {
+        x: (clientX / innerWidth) * 2 - 1,
+        y: -(clientY / innerHeight) * 2 + 1,
+      };
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(new THREE.Vector2(mouse.x, mouse.y), camera);
+
       const intersects = raycaster.intersectObjects(scene.children);
 
       if (intersects.length > 0) {
-        const firstIntersection = intersects[0];
-        const object = firstIntersection.object;
+        const { object } = intersects[0];
+        const { type, details } = object.userData;
 
-        if (object.userData.type === "NEO") {
+        if (type === "NEO_BOUNDING") {
+          const {
+            name,
+            estimated_diameter,
+            close_approach_data,
+            miss_distance,
+          } = details;
+
+          const diameter =
+            estimated_diameter.meters.estimated_diameter_max.toFixed(2);
+          const relativeSpeed = Number(
+            close_approach_data[0].relative_velocity.kilometers_per_hour
+          ).toFixed(2);
+          const closestApproach =
+            close_approach_data[0].close_approach_date_full;
+          const distanceFromEarth = Number(
+            close_approach_data[0].miss_distance.kilometers
+          ).toFixed(2);
+
           alert(
-            `Name: ${object.userData.details.name}\nDiameter: ${object.userData.details.estimated_diameter.meters.estimated_diameter_max} meters`
+            `Name: ${name}\nDiameter: ${diameter} meters\nRelative Speed: ${relativeSpeed} km/h\nClosest Approach: ${closestApproach}\nDistance from Earth: ${distanceFromEarth} km`
           );
         }
       }
@@ -94,6 +121,23 @@ const NEOVisualizer = ({ neoData }: { neoData: any }) => {
 
       neoSphere.position.set(x, y, z);
       scene.add(neoSphere);
+
+      const boundingSphereSize = scaleDiameter * 10;
+      const boundingSphere = new THREE.Mesh(
+        new THREE.SphereGeometry(boundingSphereSize, 16, 16),
+        new THREE.MeshBasicMaterial({
+          color: 0x0000ff,
+          transparent: true,
+          opacity: 0.0,
+        })
+      );
+      boundingSphere.position.set(x, y, z);
+      boundingSphere.userData = {
+        type: "NEO_BOUNDING",
+        associatedNeo: neoSphere,
+        details: neo,
+      };
+      scene.add(boundingSphere);
     });
 
     camera.position.z = 5;
@@ -101,6 +145,37 @@ const NEOVisualizer = ({ neoData }: { neoData: any }) => {
     const animate = () => {
       requestAnimationFrame(animate);
       controls.update();
+
+      const intersects = raycaster.intersectObjects(scene.children);
+
+      if (intersects.length > 0) {
+        const firstIntersection = intersects[0];
+        const object = firstIntersection.object;
+
+        if (object.userData.type === "NEO_BOUNDING") {
+          if (hoveredNeo) {
+            const hoveredNeoMaterial =
+              hoveredNeo.material as THREE.MeshBasicMaterial;
+            hoveredNeoMaterial.color.set(hoveredNeo.userData.originalColor);
+          }
+
+          hoveredNeo = object.userData.associatedNeo;
+
+          if (hoveredNeo) {
+            const hoveredNeoMaterial =
+              hoveredNeo.material as THREE.MeshBasicMaterial;
+            hoveredNeo.userData.originalColor =
+              hoveredNeoMaterial.color.getHex();
+            hoveredNeoMaterial.color.set(0xffff00);
+          }
+        }
+      } else if (hoveredNeo) {
+        const hoveredNeoMaterial =
+          hoveredNeo.material as THREE.MeshBasicMaterial;
+        hoveredNeoMaterial.color.set(hoveredNeo.userData.originalColor);
+        hoveredNeo = null;
+      }
+
       renderer.render(scene, camera);
     };
 
