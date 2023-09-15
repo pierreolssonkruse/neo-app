@@ -11,7 +11,6 @@ const HomePage = () => {
 
   useEffect(() => {
     fetchDataForDate(selectedDate);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
 
   const fetchDataForDate = async (date: string) => {
