@@ -3,24 +3,41 @@ import { fetchNEOs } from '../lib/neows';
 import NEOVisualizer from '../components/NEOVisualizer';
 
 const HomePage = () => {
+  const today = new Date().toISOString().split('T')[0];
   const [neoData, setNeoData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(today);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await fetchNEOs('2023-09-01', '2023-09-01');
-        setNeoData(data);
-        setLoading(false);
-      } catch (err) {
-        setError("Failed to fetch NEO data.");
-        setLoading(false);
-      }
-    };
+    fetchDataForDate(selectedDate);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
 
-    fetchData();
-  }, []);
+  const fetchDataForDate = async (date: string) => {
+    try {
+      setLoading(true);
+      const data = await fetchNEOs(date, date);
+      if (data && data.near_earth_objects) {
+        setNeoData(data);
+        console.log(data, '1');
+        setError(null);
+      } else {
+        setError("Invalid data format received.");
+      }
+      setLoading(false);
+    } catch (err) {
+      setError("Failed to fetch NEO data.");
+      setLoading(false);
+    }
+  };
+
+  const handleDateChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = event.target.value;
+    setSelectedDate(newDate);
+    fetchDataForDate(newDate);
+    console.log(newDate, '2');
+  };
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error}</p>;
@@ -28,6 +45,7 @@ const HomePage = () => {
   return (
     <div>
       <h1>Near Earth Objects Visualization</h1>
+      <input type="date" onChange={handleDateChange} value={selectedDate} />
       {neoData && <NEOVisualizer neoData={neoData} />}
     </div>
   );

@@ -1,11 +1,10 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { TextureLoader } from "three";
 import * as THREE from "three";
 
 const NEOVisualizer = ({ neoData }: { neoData: any }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
 
@@ -80,7 +79,9 @@ const NEOVisualizer = ({ neoData }: { neoData: any }) => {
       scene.add(earth);
     });
 
-    const neosForDate = neoData.near_earth_objects["2023-09-01"];
+    const dateKeys = Object.keys(neoData.near_earth_objects);
+    const dateKey = dateKeys[0];
+    const neosForDate = neoData.near_earth_objects[dateKey];
     if (!neosForDate || !Array.isArray(neosForDate)) {
       return;
     }
@@ -184,6 +185,7 @@ const NEOVisualizer = ({ neoData }: { neoData: any }) => {
     return () => {
       window.removeEventListener("click", onMouseClick);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [neoData]);
 
   return (
