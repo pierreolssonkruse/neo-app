@@ -30,11 +30,10 @@ const HomePage = () => {
     }
   };
 
-  const handleDateChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = event.target.value;
     setSelectedDate(newDate);
-    fetchDataForDate(newDate);
-  };
+};
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error}</p>;
