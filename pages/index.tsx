@@ -19,7 +19,6 @@ const HomePage = () => {
       const data = await fetchNEOs(date, date);
       if (data && data.near_earth_objects) {
         setNeoData(data);
-        console.log(data, '1');
         setError(null);
       } else {
         setError("Invalid data format received.");
@@ -35,7 +34,6 @@ const HomePage = () => {
     const newDate = event.target.value;
     setSelectedDate(newDate);
     fetchDataForDate(newDate);
-    console.log(newDate, '2');
   };
 
   if (loading) return <p>Loading...</p>;
@@ -48,6 +46,6 @@ const HomePage = () => {
       {neoData && <NEOVisualizer neoData={neoData} />}
     </div>
   );
-};
+}; 
 
 export default HomePage;
