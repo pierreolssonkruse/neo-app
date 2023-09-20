@@ -2,24 +2,45 @@ import React, { useRef, useEffect, useState } from "react";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { TextureLoader } from "three";
 import * as THREE from "three";
+import Modal from "@mui/material/Modal";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 
 const NEOVisualizer = ({ neoData }: { neoData: any }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const [open, setOpen] = useState(false);
+  const [selectedNEO, setSelectedNEO] = useState<any>(null);
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
+
+  const handleOpen = (neo: any) => {
+    setSelectedNEO(neo);
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+  };
+
+  const modalStyle = {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: 400,
+    bgcolor: "background.paper",
+    border: "2px solid #000",
+    boxShadow: 24,
+    p: 4,
+  };
 
   useEffect(() => {
     sceneRef.current = new THREE.Scene();
     sceneRef.current.background = new THREE.Color(0x000000);
-    cameraRef.current = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
+    cameraRef.current = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
     const renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -48,11 +69,7 @@ const NEOVisualizer = ({ neoData }: { neoData: any }) => {
   useEffect(() => {
     if (!rendererRef.current) return;
 
-    rendererRef.current.domElement.addEventListener(
-      "click",
-      onMouseClick,
-      false
-    );
+    rendererRef.current.domElement.addEventListener("click", onMouseClick, false);
 
     const textureLoader = new TextureLoader();
     textureLoader.load("/earth_texture.jpg", (texture) => {
@@ -77,16 +94,10 @@ const NEOVisualizer = ({ neoData }: { neoData: any }) => {
     const neoTexture = textureLoader.load("/neo_texture.jpg");
 
     neosForDate.forEach((neo: any) => {
-      const neoDiameter =
-        neo.estimated_diameter.meters.estimated_diameter_max / 1000;
-      const scaleDiameter = Math.max(
-        (neoDiameter / EARTH_DIMETER) * NEO_SCALING_FACTOR,
-        MIN_NEO_SIZE
-      );
+      const neoDiameter = neo.estimated_diameter.meters.estimated_diameter_max / 1000;
+      const scaleDiameter = Math.max((neoDiameter / EARTH_DIMETER) * NEO_SCALING_FACTOR, MIN_NEO_SIZE);
       const neoGeometry = new THREE.SphereGeometry(scaleDiameter / 2, 32, 32);
-      const neoColor = neo.is_potentially_hazardous_asteroid
-        ? 0xff0000
-        : 0x00ff00;
+      const neoColor = neo.is_potentially_hazardous_asteroid ? 0xff0000 : 0x00ff00;
       const neoMaterial = new THREE.MeshBasicMaterial({
         map: neoTexture,
         color: neoColor,
@@ -97,8 +108,7 @@ const NEOVisualizer = ({ neoData }: { neoData: any }) => {
         details: neo,
       };
 
-      const distanceFromEarth =
-        neo.close_approach_data[0].miss_distance.kilometers / 1000000;
+      const distanceFromEarth = neo.close_approach_data[0].miss_distance.kilometers / 1000000;
       const randomTheta = 2 * Math.PI * Math.random();
       const randomPhi = Math.acos(2 * Math.random() - 1);
       const x = distanceFromEarth * Math.sin(randomPhi) * Math.cos(randomTheta);
@@ -131,10 +141,7 @@ const NEOVisualizer = ({ neoData }: { neoData: any }) => {
     });
 
     return () => {
-      rendererRef.current?.domElement.removeEventListener(
-        "click",
-        onMouseClick
-      );
+      rendererRef.current?.domElement.removeEventListener("click", onMouseClick);
     };
   }, [neoData]);
 
@@ -152,37 +159,38 @@ const NEOVisualizer = ({ neoData }: { neoData: any }) => {
       raycaster.setFromCamera(mouse, cameraRef.current);
     }
 
-    const intersects = raycaster.intersectObjects(
-      sceneRef.current ? sceneRef.current.children : []
-    );
+    const intersects = raycaster.intersectObjects(sceneRef.current ? sceneRef.current.children : []);
 
     for (let intersect of intersects) {
       const { object } = intersect;
       const { type, details } = object.userData;
 
       if (type === "NEO_BOUNDING") {
-        const { name, estimated_diameter, close_approach_data, miss_distance } =
-          details;
-
-        const diameter =
-          estimated_diameter.meters.estimated_diameter_max.toFixed(2);
-        const relativeSpeed = Number(
-          close_approach_data[0].relative_velocity.kilometers_per_hour
-        ).toFixed(2);
-        const closestApproach = close_approach_data[0].close_approach_date_full;
-        const distanceFromEarth = Number(
-          close_approach_data[0].miss_distance.kilometers
-        ).toFixed(2);
-
-        alert(
-          `Name: ${name}\nDiameter: ${diameter} meters\nRelative Speed: ${relativeSpeed} km/h\nClosest Approach: ${closestApproach}\nDistance from Earth: ${distanceFromEarth} km`
-        );
+        handleOpen(details);
         break;
       }
     }
   }
+
   return (
-    <div ref={containerRef} style={{ width: "100%", height: "500px" }}></div>
+    <div>
+      <div ref={containerRef} style={{ width: "100%", height: "500px" }}></div>
+      <Modal open={open} onClose={handleClose} aria-labelledby="neo-details-title" aria-describedby="neo-details-description">
+        <Box sx={modalStyle}>
+          <Typography id="neo-details-title" variant="h6">
+            {selectedNEO?.name}
+          </Typography>
+          <Typography id="neo-details-description">
+            <div>
+              <div>Diameter: {selectedNEO?.estimated_diameter.meters.estimated_diameter_max.toFixed(2)} meters</div>
+              <div>Relative Speed: {Number(selectedNEO?.close_approach_data[0].relative_velocity.kilometers_per_hour).toFixed(2)} km/h</div>
+              <div>Closest Approach: {selectedNEO?.close_approach_data[0].close_approach_date_full}</div>
+              <div>Distance from Earth: {Number(selectedNEO?.close_approach_data[0].miss_distance.kilometers).toFixed(2)} km</div>
+            </div>
+          </Typography>
+        </Box>
+      </Modal>
+    </div>
   );
 };
 
