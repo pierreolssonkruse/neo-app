@@ -5,6 +5,7 @@ import * as THREE from "three";
 import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
+import Tooltip from "@mui/material/Tooltip";
 
 const NEOVisualizer = ({ neoData }: { neoData: any }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -186,6 +187,9 @@ const NEOVisualizer = ({ neoData }: { neoData: any }) => {
               <div>Relative Speed: {Number(selectedNEO?.close_approach_data[0].relative_velocity.kilometers_per_hour).toFixed(2)} km/h</div>
               <div>Closest Approach: {selectedNEO?.close_approach_data[0].close_approach_date_full}</div>
               <div>Distance from Earth: {Number(selectedNEO?.close_approach_data[0].miss_distance.kilometers).toFixed(2)} km</div>
+              <Tooltip title="Absolute Magnitude represents an asteroid's brightness if it were 150 million kilometers away from Earth. A lower value means the asteroid is brighter. Only very large asteroids with values well below 10 might be visible to the naked eye when close to Earth.">
+                <span>Absolute Magnitude: {selectedNEO?.absolute_magnitude_h}</span>
+              </Tooltip>
             </div>
           </Typography>
         </Box>
